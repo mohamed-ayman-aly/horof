@@ -83,10 +83,7 @@ public class GameEngine
             return;
         }
 
-        State.BuzzingPlayerId = null;
-        State.BuzzingPlayerTeam = null;
-        State.SecondChanceForOpponent = false;
-        State.Phase = GamePhase.PickHex;
+        ReplaceQuestionAndReopenBuzz(hexIndex);
     }
 
     private void ClaimHex(int hexIndex, Team team)
@@ -101,6 +98,24 @@ public class GameEngine
             return;
         }
 
+        ClearSelectionAndReturnToPick();
+    }
+
+    private void ReplaceQuestionAndReopenBuzz(int hexIndex)
+    {
+        var letter = State.Cells[hexIndex].Letter;
+        var question = _questionBank.GetQuestion(letter);
+        State.CurrentQuestionId = question.Id;
+        State.CurrentQuestionText = question.Text;
+        State.ExpectedAnswerHint = question.AnswerHint;
+        State.BuzzingPlayerId = null;
+        State.BuzzingPlayerTeam = null;
+        State.SecondChanceForOpponent = false;
+        State.Phase = GamePhase.BuzzOpen;
+    }
+
+    private void ClearSelectionAndReturnToPick()
+    {
         State.SelectedHexIndex = null;
         State.CurrentQuestionId = null;
         State.CurrentQuestionText = "";

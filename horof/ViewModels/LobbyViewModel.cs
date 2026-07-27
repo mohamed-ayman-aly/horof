@@ -78,7 +78,14 @@ public partial class LobbyViewModel : ObservableObject
 
     private void OnGameChanged()
     {
-        if (_navigatedToGame || _session.Game is not { Cells.Count: > 0 })
+        if (_session.Game is not { Cells.Count: > 0 })
+        {
+            _navigatedToGame = false;
+            Refresh();
+            return;
+        }
+
+        if (_navigatedToGame)
             return;
 
         _navigatedToGame = true;
@@ -98,9 +105,16 @@ public partial class LobbyViewModel : ObservableObject
     [RelayCommand]
     private async Task StartGameAsync()
     {
+        StatusMessage = null;
         await _session.StartGameAsync();
-        if (_session.Game is not null)
-            await Shell.Current.GoToAsync("game");
+        if (_session.Game is not { Cells.Count: > 0 })
+            return;
+
+        if (_navigatedToGame)
+            return;
+
+        _navigatedToGame = true;
+        await Shell.Current.GoToAsync("game");
     }
 
     [RelayCommand]
@@ -164,18 +178,26 @@ public partial class LobbyViewModel : ObservableObject
             {
                 Index = i + 1,
                 DisplayName = player?.DisplayName ?? "—",
-                TeamLabel = player?.Team switch
-                {
-                    Team.Green => "أخضر",
-                    Team.Orange => "برتقالي",
-                    _ => ""
-                },
-                TeamColor = player?.Team switch
-                {
-                    Team.Green => Color.FromArgb("#2E7D32"),
-                    Team.Orange => Color.FromArgb("#F57C00"),
-                    _ => Colors.Gray
-                },
+                TeamLabel = player is null
+                    ? ""
+                    : player.IsHost
+                        ? "مضيف"
+                        : player.Team switch
+                        {
+                            Team.Green => "أخضر",
+                            Team.Orange => "برتقالي",
+                            _ => ""
+                        },
+                TeamColor = player is null
+                    ? Colors.Gray
+                    : player.IsHost
+                        ? Color.FromArgb("#455A64")
+                        : player.Team switch
+                        {
+                            Team.Green => Color.FromArgb("#2E7D32"),
+                            Team.Orange => Color.FromArgb("#F57C00"),
+                            _ => Colors.Gray
+                        },
                 IsOccupied = player is not null,
                 IsReady = player?.IsReady ?? false,
                 IsHost = player?.IsHost ?? false,

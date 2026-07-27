@@ -1,13 +1,12 @@
 using horof.Models;
 using horof.Services.Network;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace horof.Services;
 
 public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
 {
     private readonly GameHostRunner _hostRunner;
-    private HubConnection? _connection;
+    private LanGameClient? _client;
     private string? _localPlayerId;
     private bool _isHost;
     private Action? _hostSessionHandler;
@@ -77,25 +76,15 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
 
             await DisconnectClientAsync();
 
-            var hubUrl = NetworkHelper.ToHubUrl(hostAddress);
-            _connection = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
-                .WithAutomaticReconnect()
-                .Build();
+            var (host, port) = NetworkHelper.ParseHostAddress(hostAddress);
+            var client = new LanGameClient();
+            client.SessionUpdated += OnClientSessionUpdated;
+            client.Disconnected += OnClientDisconnected;
+            await client.ConnectAsync(host, port);
+            _client = client;
 
-            _connection.On<SessionSnapshot>("SessionUpdated", snapshot =>
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    if (_localPlayerId is not null)
-                        ApplySnapshot(snapshot, _localPlayerId);
-                });
-            });
-
-            await _connection.StartAsync();
-
-            var result = await _connection.InvokeAsync<JoinResult>(
-                "JoinRoom",
+            var result = await client.InvokeAsync<JoinResult>(
+                LanMethods.JoinRoom,
                 roomCode.Trim().ToUpperInvariant(),
                 displayName.Trim());
 
@@ -109,7 +98,7 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
             _localPlayerId = result.PlayerId;
             _isHost = false;
 
-            var snapshot = await _connection.InvokeAsync<SessionSnapshot>("GetSnapshot");
+            var snapshot = await client.InvokeAsync<SessionSnapshot>(LanMethods.GetSnapshot);
             ApplySnapshot(snapshot, _localPlayerId);
         }
         catch (Exception ex)
@@ -131,8 +120,8 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
             return;
         }
 
-        if (_connection?.State == HubConnectionState.Connected)
-            await _connection.InvokeAsync<bool>("SetReady", _localPlayerId, ready);
+        if (_client?.IsConnected == true)
+            await _client.InvokeAsync<bool>(LanMethods.SetReady, _localPlayerId, ready);
     }
 
     public async Task StartGameAsync()
@@ -143,7 +132,7 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
         if (_isHost && _hostRunner.Server is not null)
         {
             if (!_hostRunner.Server.StartGame(_localPlayerId))
-                ErrorOccurred?.Invoke("تأكد أن الجميع جاهزون (حد أدنى لاعبان)");
+                ErrorOccurred?.Invoke("يلزم المضيف مع لاعبين أو أربعة لاعبين، وجميعهم جاهزون");
             else
                 ApplySnapshot(_hostRunner.Server.GetSnapshot(), _localPlayerId);
 
@@ -166,8 +155,8 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
             return;
         }
 
-        if (_connection?.State == HubConnectionState.Connected)
-            await _connection.InvokeAsync<bool>("SelectHex", _localPlayerId, hexIndex);
+        if (_client?.IsConnected == true)
+            await _client.InvokeAsync<bool>(LanMethods.SelectHex, _localPlayerId, hexIndex);
     }
 
     public async Task BuzzAsync()
@@ -182,8 +171,8 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
             return;
         }
 
-        if (_connection?.State == HubConnectionState.Connected)
-            await _connection.InvokeAsync<bool>("Buzz", _localPlayerId);
+        if (_client?.IsConnected == true)
+            await _client.InvokeAsync<bool>(LanMethods.Buzz, _localPlayerId);
     }
 
     public async Task HostJudgeAsync(bool correct)
@@ -198,8 +187,8 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
             return;
         }
 
-        if (_connection?.State == HubConnectionState.Connected)
-            await _connection.InvokeAsync<bool>("HostJudge", _localPlayerId, correct);
+        if (_client?.IsConnected == true)
+            await _client.InvokeAsync<bool>(LanMethods.HostJudge, _localPlayerId, correct);
     }
 
     public async Task LeaveSessionAsync()
@@ -226,6 +215,26 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
         await LeaveSessionAsync();
     }
 
+    private void OnClientSessionUpdated(SessionSnapshot snapshot)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_localPlayerId is not null)
+                ApplySnapshot(snapshot, _localPlayerId);
+        });
+    }
+
+    private void OnClientDisconnected(string message)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_isHost || _localPlayerId is null)
+                return;
+
+            ErrorOccurred?.Invoke(message);
+        });
+    }
+
     private void ApplySnapshot(SessionSnapshot snapshot, string localPlayerId)
     {
         Lobby = new LobbyState
@@ -244,20 +253,22 @@ public class NetworkGameSessionService : IGameSessionService, IAsyncDisposable
 
     private async Task DisconnectClientAsync()
     {
-        if (_connection is null)
+        if (_client is null)
             return;
+
+        _client.SessionUpdated -= OnClientSessionUpdated;
+        _client.Disconnected -= OnClientDisconnected;
 
         try
         {
-            await _connection.StopAsync();
-            await _connection.DisposeAsync();
+            await _client.DisposeAsync();
         }
         catch
         {
             // ignore disconnect errors
         }
 
-        _connection = null;
+        _client = null;
     }
 
     private void SubscribeHostSessionUpdates(RoomSessionServer server)

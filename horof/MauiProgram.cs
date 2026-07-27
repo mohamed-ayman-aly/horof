@@ -1,6 +1,7 @@
 ﻿using horof.Pages;
 using horof.Services;
-using horof.Services.Network;using horof.ViewModels;
+using horof.Services.Network;
+using horof.ViewModels;
 using Microsoft.Extensions.Logging;
 
 namespace horof;

@@ -13,22 +13,39 @@
           Padding="16,12,16,20"
           RowSpacing="14">
 
-        <!-- Turn / phase -->
+        <!-- Turn / phase + local player -->
         <Border Grid.Row="0"
                 BackgroundColor="White"
                 Stroke="{StaticResource BoardGreen}"
                 StrokeThickness="2"
                 Padding="14,10"
                 StrokeShape="RoundRectangle 10">
-            <VerticalStackLayout Spacing="4">
-                <Label Text="{Binding ActiveTeamText}"
-                       FontSize="17"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource BoardGreen}" />
-                <Label Text="{Binding PhaseText}"
-                       FontSize="14"
-                       TextColor="{StaticResource Gray600}" />
-            </VerticalStackLayout>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="{Binding ActiveTeamText}"
+                           FontSize="17"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource BoardGreen}" />
+                    <Label Text="{Binding PhaseText}"
+                           FontSize="14"
+                           TextColor="{StaticResource Gray600}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="End">
+                    <Label Text="{Binding LocalPlayerName}"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="End"
+                           TextColor="{StaticResource InputText}" />
+                    <Label Text="{Binding LocalTeamLabel}"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="End"
+                           TextColor="{Binding LocalTeamColor}" />
+                </VerticalStackLayout>
+            </Grid>
         </Border>
 
         <!-- Board canvas: fixed aspect W:H = 10000000000000000:8023758099352052 -->
@@ -78,13 +95,35 @@
 
             <Button Text="جرس!"
                     Command="{Binding BuzzCommand}"
+                    IsVisible="{Binding ShowBuzz}"
                     IsEnabled="{Binding CanBuzz}"
                     TextColor="White"
                     BackgroundColor="{StaticResource BoardOrange}"
                     FontSize="18"
                     HeightRequest="52"
                     CornerRadius="10"
-                    Margin="0" />
+                    Margin="0">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource BoardOrange}" />
+                                    <Setter Property="TextColor" Value="White" />
+                                    <Setter Property="Opacity" Value="1" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Disabled">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource Gray300}" />
+                                    <Setter Property="TextColor" Value="{StaticResource Gray500}" />
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </VisualStateManager.VisualStateGroups>
+            </Button>
 
             <Grid ColumnDefinitions="*,*"
                   ColumnSpacing="10"

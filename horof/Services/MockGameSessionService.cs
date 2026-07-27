@@ -37,7 +37,7 @@ public class MockGameSessionService : IGameSessionService
             DisplayName = displayName.Trim(),
             IsHost = true,
             IsLocal = true,
-            Team = Team.Orange,
+            Team = Team.None,
             IsReady = false
         };
 
@@ -85,9 +85,7 @@ public class MockGameSessionService : IGameSessionService
             return Task.CompletedTask;
         }
 
-        var team = Lobby.Players.Count(p => p.Team == Team.Green) <= Lobby.Players.Count(p => p.Team == Team.Orange)
-            ? Team.Green
-            : Team.Orange;
+        var team = NextBalancedTeam(Lobby.Players);
 
         LocalPlayer = new Player
         {
@@ -123,7 +121,7 @@ public class MockGameSessionService : IGameSessionService
 
         if (!Lobby.CanStart)
         {
-            ErrorOccurred?.Invoke("يجب أن يكون جميع اللاعبين جاهزين (حد أدنى لاعبان)");
+            ErrorOccurred?.Invoke("يلزم المضيف مع لاعبين أو أربعة لاعبين، وجميعهم جاهزون");
             return Task.CompletedTask;
         }
 
@@ -138,6 +136,9 @@ public class MockGameSessionService : IGameSessionService
         if (LocalPlayer is null || Game is null)
             return Task.CompletedTask;
 
+        if (LocalPlayer.IsHost || LocalPlayer.Team == Team.None)
+            return Task.CompletedTask;
+
         if (_engine.TrySelectHex(hexIndex, LocalPlayer.Team))
             GameChanged?.Invoke();
 
@@ -147,6 +148,9 @@ public class MockGameSessionService : IGameSessionService
     public Task BuzzAsync()
     {
         if (LocalPlayer is null)
+            return Task.CompletedTask;
+
+        if (LocalPlayer.IsHost || LocalPlayer.Team == Team.None)
             return Task.CompletedTask;
 
         if (_engine.TryBuzz(LocalPlayer.Id, LocalPlayer.Team))
@@ -162,7 +166,25 @@ public class MockGameSessionService : IGameSessionService
 
         _engine.HostJudge(correct);
         GameChanged?.Invoke();
+
+        if (_engine.State.Phase == GamePhase.RoundEnded)
+            _ = ReturnToLobbyAfterWinAsync();
+
         return Task.CompletedTask;
+    }
+
+    private async Task ReturnToLobbyAfterWinAsync()
+    {
+        await Task.Delay(2500);
+
+        if (_engine.State.Phase != GamePhase.RoundEnded)
+            return;
+
+        // Keep ready flags so the host can start a rematch immediately.
+        _engine.StartMatch(0);
+        _engine.State.Cells.Clear();
+        LobbyChanged?.Invoke();
+        GameChanged?.Invoke();
     }
 
     public Task LeaveSessionAsync()
@@ -182,9 +204,7 @@ public class MockGameSessionService : IGameSessionService
         if (Lobby.Players.Count >= LobbyState.MaxPlayers)
             return;
 
-        var team = Lobby.Players.Count(p => p.Team == Team.Green) <= Lobby.Players.Count(p => p.Team == Team.Orange)
-            ? Team.Green
-            : Team.Orange;
+        var team = NextBalancedTeam(Lobby.Players);
 
         Lobby.Players.Add(new Player
         {
@@ -194,6 +214,13 @@ public class MockGameSessionService : IGameSessionService
             IsReady = true
         });
         LobbyChanged?.Invoke();
+    }
+
+    private static Team NextBalancedTeam(IEnumerable<Player> players)
+    {
+        var green = players.Count(p => p.Team == Team.Green);
+        var orange = players.Count(p => p.Team == Team.Orange);
+        return green <= orange ? Team.Green : Team.Orange;
     }
 
     private static string GenerateRoomCode()

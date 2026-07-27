@@ -35,12 +35,16 @@ public record GameStateDto(
 
 public static class SessionMapping
 {
-    public static SessionSnapshot ToSnapshot(LobbyState lobby, GameState? game, string hostAddress) =>
+    public static SessionSnapshot ToSnapshot(
+        LobbyState lobby,
+        GameState? game,
+        string hostAddress,
+        bool includeQuestionSecrets = true) =>
         new(
             lobby.RoomCode,
             hostAddress,
             lobby.Players.Select(ToDto).ToList(),
-            game is null || game.Cells.Count == 0 ? null : ToDto(game));
+            game is null || game.Cells.Count == 0 ? null : ToDto(game, includeQuestionSecrets));
 
     public static PlayerDto ToDto(Player p) =>
         new(p.Id, p.DisplayName, p.Team, p.IsHost, p.IsReady);
@@ -56,7 +60,7 @@ public static class SessionMapping
             IsLocal = isLocal
         };
 
-    public static GameStateDto ToDto(GameState state) =>
+    public static GameStateDto ToDto(GameState state, bool includeQuestionSecrets = true) =>
         new(
             state.MatchSeed,
             state.Phase,
@@ -65,9 +69,9 @@ public static class SessionMapping
             state.SelectedHexIndex,
             state.BuzzingPlayerId,
             state.BuzzingPlayerTeam,
-            state.CurrentQuestionId,
-            state.CurrentQuestionText,
-            state.ExpectedAnswerHint,
+            includeQuestionSecrets ? state.CurrentQuestionId : null,
+            includeQuestionSecrets ? state.CurrentQuestionText : "",
+            includeQuestionSecrets ? state.ExpectedAnswerHint : "",
             state.SecondChanceForOpponent,
             state.Cells.Select(c => new HexCellDto(c.Row, c.Col, c.Index, c.Letter, c.Owner)).ToList());
 

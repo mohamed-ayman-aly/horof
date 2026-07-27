@@ -1,6 +1,5 @@
 using horof.Models;
 using horof.Services;
-using Microsoft.AspNetCore.SignalR;
 
 namespace horof.Services.Network;
 
@@ -9,7 +8,7 @@ public class RoomSessionServer
     private readonly GameEngine _engine;
     private readonly Random _random = new();
     private readonly Dictionary<string, string> _connectionToPlayer = new();
-    private IHubContext<LobbyHub>? _hub;
+    private Func<string, SessionSnapshot, Task>? _pushSession;
     private string _hostAddress = "";
 
     public event Action? SessionChanged;
@@ -17,14 +16,13 @@ public class RoomSessionServer
     public RoomSessionServer(IQuestionBank questionBank)
     {
         _engine = new GameEngine(questionBank);
-        Lobby = new LobbyState();
     }
 
-    public LobbyState Lobby { get; private set; }
+    public LobbyState Lobby { get; private set; } = new();
 
     public GameState? Game => _engine.State.Cells.Count > 0 ? _engine.State : null;
 
-    public void SetHubContext(IHubContext<LobbyHub> hub) => _hub = hub;
+    public void SetSessionPusher(Func<string, SessionSnapshot, Task> push) => _pushSession = push;
 
     public void SetHostAddress(string hostAddress) => _hostAddress = hostAddress;
 
@@ -36,7 +34,7 @@ public class RoomSessionServer
         {
             DisplayName = displayName.Trim(),
             IsHost = true,
-            Team = Team.Orange,
+            Team = Team.None,
             IsReady = false
         };
 
@@ -61,9 +59,7 @@ public class RoomSessionServer
         if (Lobby.Players.Count >= LobbyState.MaxPlayers)
             return new JoinResult(false, null, "الغرفة ممتلئة");
 
-        var team = Lobby.Players.Count(p => p.Team == Team.Green) <= Lobby.Players.Count(p => p.Team == Team.Orange)
-            ? Team.Green
-            : Team.Orange;
+        var team = NextBalancedTeam(Lobby.Players);
 
         var player = new Player
         {
@@ -108,7 +104,7 @@ public class RoomSessionServer
     public bool SelectHex(string playerId, int hexIndex)
     {
         var player = Lobby.Players.FirstOrDefault(p => p.Id == playerId);
-        if (player is null)
+        if (player is null || player.IsHost || player.Team == Team.None)
             return false;
 
         if (!_engine.TrySelectHex(hexIndex, player.Team))
@@ -121,7 +117,7 @@ public class RoomSessionServer
     public bool Buzz(string playerId)
     {
         var player = Lobby.Players.FirstOrDefault(p => p.Id == playerId);
-        if (player is null)
+        if (player is null || player.IsHost || player.Team == Team.None)
             return false;
 
         if (!_engine.TryBuzz(player.Id, player.Team))
@@ -139,7 +135,24 @@ public class RoomSessionServer
 
         _engine.HostJudge(correct);
         _ = BroadcastAsync();
+
+        if (_engine.State.Phase == GamePhase.RoundEnded)
+            _ = ReturnToLobbyAfterWinAsync();
+
         return true;
+    }
+
+    private async Task ReturnToLobbyAfterWinAsync()
+    {
+        await Task.Delay(2500);
+
+        if (_engine.State.Phase != GamePhase.RoundEnded)
+            return;
+
+        // Keep ready flags so the host can start a rematch immediately.
+        _engine.StartMatch(0);
+        _engine.State.Cells.Clear();
+        await BroadcastAsync();
     }
 
     public void RemoveConnection(string connectionId)
@@ -164,8 +177,20 @@ public class RoomSessionServer
         _ = BroadcastAsync();
     }
 
-    public SessionSnapshot GetSnapshot() =>
-        SessionMapping.ToSnapshot(Lobby, Game, _hostAddress);
+    public SessionSnapshot GetSnapshot(bool includeQuestionSecrets = true) =>
+        SessionMapping.ToSnapshot(Lobby, Game, _hostAddress, includeQuestionSecrets);
+
+    public SessionSnapshot GetSnapshotForConnection(string connectionId)
+    {
+        var includeSecrets = false;
+        if (_connectionToPlayer.TryGetValue(connectionId, out var playerId))
+        {
+            var player = Lobby.Players.FirstOrDefault(p => p.Id == playerId);
+            includeSecrets = player?.IsHost ?? false;
+        }
+
+        return GetSnapshot(includeSecrets);
+    }
 
     public void Reset()
     {
@@ -185,10 +210,22 @@ public class RoomSessionServer
     {
         SessionChanged?.Invoke();
 
-        if (_hub is null)
+        if (_pushSession is null || _connectionToPlayer.Count == 0)
             return;
 
-        await _hub.Clients.All.SendAsync("SessionUpdated", GetSnapshot());
+        foreach (var (connectionId, playerId) in _connectionToPlayer)
+        {
+            var player = Lobby.Players.FirstOrDefault(p => p.Id == playerId);
+            var includeSecrets = player?.IsHost ?? false;
+            await _pushSession(connectionId, GetSnapshot(includeSecrets));
+        }
+    }
+
+    private static Team NextBalancedTeam(IEnumerable<Player> players)
+    {
+        var green = players.Count(p => p.Team == Team.Green);
+        var orange = players.Count(p => p.Team == Team.Orange);
+        return green <= orange ? Team.Green : Team.Orange;
     }
 
     private static string GenerateRoomCode()

@@ -50,6 +50,17 @@ public static class NetworkHelper
         return $"{trimmed}:{port}";
     }
 
-    public static string ToHubUrl(string hostAddress) =>
-        $"http://{FormatHostAddress(hostAddress)}/gamehub";
+    public static (string Host, int Port) ParseHostAddress(string hostAddress)
+    {
+        var formatted = FormatHostAddress(hostAddress);
+        var separator = formatted.LastIndexOf(':');
+        if (separator <= 0 || separator == formatted.Length - 1)
+            return (formatted, DefaultPort);
+
+        var host = formatted[..separator];
+        if (!int.TryParse(formatted[(separator + 1)..], out var port))
+            port = DefaultPort;
+
+        return (host, port);
+    }
 }

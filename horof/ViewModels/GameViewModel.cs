@@ -22,6 +22,15 @@ public partial class GameViewModel : ObservableObject
     private string _activeTeamText = "";
 
     [ObservableProperty]
+    private string _localPlayerName = "";
+
+    [ObservableProperty]
+    private string _localTeamLabel = "";
+
+    [ObservableProperty]
+    private Color _localTeamColor = Colors.Gray;
+
+    [ObservableProperty]
     private string _questionText = "";
 
     [ObservableProperty]
@@ -37,6 +46,9 @@ public partial class GameViewModel : ObservableObject
     private bool _canBuzz;
 
     [ObservableProperty]
+    private bool _showBuzz;
+
+    [ObservableProperty]
     private bool _showHostJudge;
 
     [ObservableProperty]
@@ -44,6 +56,9 @@ public partial class GameViewModel : ObservableObject
 
     [ObservableProperty]
     private string _roundWinnerText = "";
+
+    private bool _navigatedToLobby;
+    private bool _handledRoundEnd;
 
     public GameViewModel(IGameSessionService session)
     {
@@ -86,9 +101,11 @@ public partial class GameViewModel : ObservableObject
     private void Refresh()
     {
         var state = _session.Game;
-        if (state is null)
+        if (state is null || state.Cells.Count == 0)
         {
             Cells = [];
+            if (_handledRoundEnd)
+                NavigateToLobby();
             return;
         }
 
@@ -102,6 +119,30 @@ public partial class GameViewModel : ObservableObject
         }).ToList();
         SelectedHexIndex = state.SelectedHexIndex;
 
+        var local = _session.LocalPlayer;
+        var isHost = local?.IsHost ?? false;
+        LocalPlayerName = local?.DisplayName ?? "—";
+        if (isHost)
+        {
+            LocalTeamLabel = "مضيف";
+            LocalTeamColor = Color.FromArgb("#455A64");
+        }
+        else if (local?.Team == Team.Green)
+        {
+            LocalTeamLabel = "أخضر";
+            LocalTeamColor = Color.FromArgb("#2E7D32");
+        }
+        else if (local?.Team == Team.Orange)
+        {
+            LocalTeamLabel = "برتقالي";
+            LocalTeamColor = Color.FromArgb("#F57C00");
+        }
+        else
+        {
+            LocalTeamLabel = "";
+            LocalTeamColor = Colors.Gray;
+        }
+
         ActiveTeamText = state.ActiveTeam == Team.Green ? "دور الفريق الأخضر" : "دور الفريق البرتقالي";
         PhaseText = state.Phase switch
         {
@@ -112,19 +153,25 @@ public partial class GameViewModel : ObservableObject
             GamePhase.RoundEnded => "انتهت الجولة",
             _ => ""
         };
-
-        ShowQuestion = state.Phase is GamePhase.BuzzOpen or GamePhase.Answering or GamePhase.SecondChance;
-        QuestionText = state.CurrentQuestionText;
-        AnswerHint = string.IsNullOrEmpty(state.ExpectedAnswerHint)
-            ? ""
-            : $"تلميح للمضيف: {state.ExpectedAnswerHint}";
+        var questionPhase = state.Phase is GamePhase.BuzzOpen or GamePhase.Answering or GamePhase.SecondChance;
+        ShowQuestion = isHost && questionPhase;
+        QuestionText = isHost ? state.CurrentQuestionText : "";
+        AnswerHint = isHost && !string.IsNullOrEmpty(state.ExpectedAnswerHint)
+            ? $"الإجابة: {state.ExpectedAnswerHint}"
+            : "";
 
         var localTeam = _session.LocalPlayer?.Team ?? Team.None;
-        CanSelectHex = state.Phase == GamePhase.PickHex && localTeam == state.ActiveTeam;
-        CanBuzz = state.Phase is GamePhase.BuzzOpen or GamePhase.SecondChance
+        CanSelectHex = !isHost
+                       && localTeam != Team.None
+                       && state.Phase == GamePhase.PickHex
+                       && localTeam == state.ActiveTeam;
+        CanBuzz = !isHost
+                  && localTeam != Team.None
+                  && state.Phase is GamePhase.BuzzOpen or GamePhase.SecondChance
                   && (state.Phase != GamePhase.SecondChance || localTeam != state.ActiveTeam);
+        ShowBuzz = !isHost;
 
-        ShowHostJudge = state.Phase == GamePhase.Answering && (_session.LocalPlayer?.IsHost ?? false);
+        ShowHostJudge = state.Phase == GamePhase.Answering && isHost;
         ShowRoundEnd = state.Phase == GamePhase.RoundEnded;
         RoundWinnerText = state.RoundWinner switch
         {
@@ -132,5 +179,35 @@ public partial class GameViewModel : ObservableObject
             Team.Orange => "فاز الفريق البرتقالي!",
             _ => ""
         };
+
+        if (state.Phase == GamePhase.RoundEnded && !_handledRoundEnd)
+        {
+            _handledRoundEnd = true;
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await Task.Delay(2500);
+                NavigateToLobby();
+            });
+        }
+    }
+
+    private void NavigateToLobby()
+    {
+        if (_navigatedToLobby)
+            return;
+
+        _navigatedToLobby = true;
+        _session.GameChanged -= Refresh;
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
+                await Shell.Current.GoToAsync("..");
+            }
+            catch
+            {
+                await Shell.Current.GoToAsync("//home");
+            }
+        });
     }
 }

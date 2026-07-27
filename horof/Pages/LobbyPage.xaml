@@ -116,7 +116,7 @@
 
             <Button Text="إضافة لاعب تجريبي (وضع التطوير)"
                     Command="{Binding AddTestPlayerCommand}"
-                    IsVisible="{Binding IsHost}"
+                    IsVisible="False"
                     TextColor="White"
                     BackgroundColor="{StaticResource Gray400}" />
 
@@ -130,7 +130,28 @@
                     IsVisible="{Binding IsHost}"
                     IsEnabled="{Binding CanStart}"
                     TextColor="White"
-                    BackgroundColor="{StaticResource BoardOrange}" />
+                    BackgroundColor="{StaticResource BoardOrange}">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource BoardOrange}" />
+                                    <Setter Property="TextColor" Value="White" />
+                                    <Setter Property="Opacity" Value="1" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Disabled">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="{StaticResource Gray300}" />
+                                    <Setter Property="TextColor" Value="{StaticResource Gray500}" />
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </VisualStateManager.VisualStateGroups>
+            </Button>
 
             <Label Text="{Binding CopyFeedback}"
                    TextColor="{StaticResource BoardGreen}"

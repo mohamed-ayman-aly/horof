@@ -1,5 +1,4 @@
 using horof.Models;
-using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
 using Microsoft.Maui.Graphics;
 
 namespace horof.Controls;
@@ -59,13 +58,18 @@ public class HexBoardDrawable : IDrawable
             canvas.DrawPath(path);
 
             // Letter centered inside the hex.
+            // Use a real bounds rect — the (x,y)+alignment overload misplaces text on Android.
             canvas.FontColor = Color.FromArgb("#1A237E");
             canvas.FontSize = _hexSize * 0.72f;
+            var letterBox = _hexSize * 1.2f;
             canvas.DrawString(
                 cell.Letter.ToString(),
-                center.X,
-                center.Y,
-                HorizontalAlignment.Center);
+                center.X - letterBox * 0.5f,
+                center.Y - letterBox * 0.5f,
+                letterBox,
+                letterBox,
+                HorizontalAlignment.Center,
+                VerticalAlignment.Center);
         }
     }
 

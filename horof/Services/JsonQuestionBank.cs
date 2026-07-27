@@ -5,7 +5,8 @@ namespace horof.Services;
 public class JsonQuestionBank : IQuestionBank
 {
     private readonly Dictionary<char, List<TriviaQuestion>> _byLetter = new();
-    private readonly Dictionary<char, int> _cursor = new();
+    private readonly Dictionary<char, string?> _lastQuestionId = new();
+    private readonly Random _random = new();
 
     public JsonQuestionBank()
     {
@@ -24,16 +25,35 @@ public class JsonQuestionBank : IQuestionBank
                 "إجابة تبدأ بنفس الحرف");
         }
 
-        if (!_cursor.ContainsKey(key))
-            _cursor[key] = 0;
+        TriviaQuestion question;
+        if (list.Count == 1)
+        {
+            question = list[0];
+        }
+        else
+        {
+            _lastQuestionId.TryGetValue(key, out var lastId);
+            do
+            {
+                question = list[_random.Next(list.Count)];
+            } while (question.Id == lastId);
+        }
 
-        var q = list[_cursor[key] % list.Count];
-        _cursor[key]++;
-        return q;
+        _lastQuestionId[key] = question.Id;
+        return question;
     }
 
-    private static char NormalizeLetter(char letter) =>
-        char.ToUpperInvariant(letter);
+    private static char NormalizeLetter(char letter)
+    {
+        letter = char.ToUpperInvariant(letter);
+        return letter switch
+        {
+            'أ' or 'إ' or 'آ' or 'ٱ' => 'ا',
+            'ى' => 'ي',
+            'ة' => 'ه',
+            _ => letter
+        };
+    }
 
     private void LoadFromEmbedded()
     {
@@ -59,8 +79,8 @@ public class JsonQuestionBank : IQuestionBank
                 _byLetter[letter].Add(new TriviaQuestion(
                     item.Id ?? Guid.NewGuid().ToString("N"),
                     letter,
-                    item.Text,
-                    item.AnswerHint ?? ""));
+                    item.Text.Trim(),
+                    item.AnswerHint?.Trim() ?? ""));
             }
         }
         catch
@@ -74,7 +94,7 @@ public class JsonQuestionBank : IQuestionBank
         Add('ص', "ما الحيوان الذي يُلقب بسفينة الصحراء؟", "جمل");
         Add('س', "ما عاصمة المملكة العربية السعودية؟", "الرياض");
         Add('م', "ما الكوكب الأحمر؟", "المريخ");
-        Add('د', "ما اللون الذي يرمز للسماء صافية؟", "أزرق — للتمرين: د");
+        Add('د', "ما اللون الذي يرمز للسماء صافية؟", "أزرق");
     }
 
     private void Add(char letter, string text, string hint)
