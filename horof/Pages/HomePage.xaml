@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:horof.ViewModels"
+             x:Class="horof.Pages.HomePage"
+             x:DataType="vm:HomeViewModel"
+             Title="حروف"
+             FlowDirection="RightToLeft"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="24">
+        <VerticalStackLayout Grid.Row="0" Spacing="8" Margin="0,40,0,24">
+            <Label Text="حروف"
+                   FontSize="48"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource BoardGreen}" />
+            <Label Text="لعبة المسابقات على خلية الحروف"
+                   FontSize="16"
+                   HorizontalOptions="Center"
+                   TextColor="{StaticResource Gray600}" />
+        </VerticalStackLayout>
+
+        <Border Grid.Row="1"
+                Stroke="{StaticResource BoardOrange}"
+                StrokeThickness="4"
+                BackgroundColor="White"
+                Padding="20"
+                StrokeShape="RoundRectangle 16">
+            <VerticalStackLayout Spacing="16">
+                <Label Text="اسمك" FontAttributes="Bold" TextColor="{StaticResource InputText}" />
+                <Entry Text="{Binding DisplayName}"
+                       Placeholder="أدخل اسمك"
+                       TextColor="{StaticResource InputText}"
+                       PlaceholderColor="{StaticResource Gray500}"
+                       BackgroundColor="{StaticResource InputBackground}"
+                       ReturnType="Done" />
+
+                <Button Text="إنشاء غرفة"
+                        TextColor="White"
+                        BackgroundColor="{StaticResource BoardGreen}"
+                        Command="{Binding CreateGameCommand}" />
+
+                <BoxView HeightRequest="1" Color="{StaticResource Gray200}" />
+
+                <Label Text="رمز الغرفة للانضمام" FontAttributes="Bold" TextColor="{StaticResource InputText}" />
+                <Entry Text="{Binding RoomCode}"
+                       Placeholder="ABCDEF"
+                       TextColor="{StaticResource InputText}"
+                       PlaceholderColor="{StaticResource Gray500}"
+                       BackgroundColor="{StaticResource InputBackground}"
+                       MaxLength="6"
+                       CharacterSpacing="4"
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="عنوان المضيف (IP)" FontAttributes="Bold" TextColor="{StaticResource InputText}" />
+                <Label Text="انسخه من شاشة المضيف — مثل 192.168.1.10"
+                       FontSize="11"
+                       TextColor="{StaticResource Gray500}" />
+                <Entry Text="{Binding HostAddress}"
+                       Placeholder="192.168.1.10"
+                       TextColor="{StaticResource InputText}"
+                       PlaceholderColor="{StaticResource Gray500}"
+                       BackgroundColor="{StaticResource InputBackground}"
+                       Keyboard="Telephone" />
+
+                <Button Text="انضم للغرفة"
+                        TextColor="White"
+                        BackgroundColor="{StaticResource BoardOrange}"
+                        Command="{Binding JoinGameCommand}" />
+
+                <Label Text="{Binding StatusMessage}"
+                       TextColor="IndianRed" />
+            </VerticalStackLayout>
+        </Border>
+
+        <Label Grid.Row="2"
+               Text="فريق أخضر ↔ فريق برتقالي — أوصل طرفيك على اللوحة"
+               FontSize="12"
+               HorizontalTextAlignment="Center"
+               TextColor="{StaticResource Gray500}"
+               Margin="0,16,0,0" />
+    </Grid>
+</ContentPage>

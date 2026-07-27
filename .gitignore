@@ -1,0 +1,27 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/horof/bin/Debug/net10.0-windows10.0.19041.0/win-x64
+*.stamp
+/horof/obj/Debug/net10.0-android/designtime
+/horof/obj/Debug/net10.0-android
+/horof/obj/Debug/net10.0-ios/iossimulator-x64/horof.AssemblyInfo.cs
+/horof/obj/Debug/net10.0-ios/iossimulator-x64/horof.AssemblyInfoInputs.cache
+/horof/obj/Debug/net10.0-ios/iossimulator-x64/horof.assets.cache
+/horof/obj/Debug/net10.0-ios/iossimulator-x64/horof.csproj.FileListAbsolute.txt
+/horof/obj/Debug/net10.0-ios/iossimulator-x64/horof.GeneratedMSBuildEditorConfig.editorconfig
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/.NETCoreApp,Version=v10.0.AssemblyAttributes.cs
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.AssemblyInfo.cs
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.AssemblyInfoInputs.cache
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.assets.cache
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.csproj.AssemblyReference.cache
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.csproj.FileListAbsolute.txt
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.GeneratedMSBuildEditorConfig.editorconfig
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.GlobalUsings.g.cs
+/horof/obj/Debug/net10.0-maccatalyst/maccatalyst-x64/horof.nfloat.g.cs
+/horof/obj/Debug/net10.0-windows10.0.19041.0/win-x64/embed/Platforms/Windows
+/horof/obj/Debug/net10.0-windows10.0.19041.0/win-x64/embed
+/horof/obj/Debug/net10.0-windows10.0.19041.0/win-x64/intermediatexaml
+/horof/obj/Debug/net10.0-windows10.0.19041.0/win-x64

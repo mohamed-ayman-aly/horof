@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:horof.ViewModels"
+             xmlns:controls="clr-namespace:horof.Controls"
+             x:Class="horof.Pages.GamePage"
+             x:DataType="vm:GameViewModel"
+             Title="حروف"
+             FlowDirection="RightToLeft"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <Grid RowDefinitions="Auto,*,Auto"
+          Padding="16,12,16,20"
+          RowSpacing="14">
+
+        <!-- Turn / phase -->
+        <Border Grid.Row="0"
+                BackgroundColor="White"
+                Stroke="{StaticResource BoardGreen}"
+                StrokeThickness="2"
+                Padding="14,10"
+                StrokeShape="RoundRectangle 10">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="{Binding ActiveTeamText}"
+                       FontSize="17"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource BoardGreen}" />
+                <Label Text="{Binding PhaseText}"
+                       FontSize="14"
+                       TextColor="{StaticResource Gray600}" />
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Board canvas: fixed aspect W:H = 10000000000000000:8023758099352052 -->
+        <Grid Grid.Row="1">
+            <controls:HexBoardView x:Name="HexBoard"
+                                   FlowDirection="LeftToRight"
+                                   BackgroundColor="Transparent"
+                                   Cells="{Binding Cells}"
+                                   SelectedIndex="{Binding SelectedHexIndex}"
+                                   CanSelect="{Binding CanSelectHex}"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="Center" />
+        </Grid>
+        <!-- Question + actions -->
+        <VerticalStackLayout Grid.Row="2" Spacing="12">
+
+            <Border IsVisible="{Binding ShowQuestion}"
+                    BackgroundColor="White"
+                    Stroke="{StaticResource BoardOrange}"
+                    StrokeThickness="2"
+                    Padding="14"
+                    StrokeShape="RoundRectangle 10">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="{Binding QuestionText}"
+                           FontSize="16"
+                           LineBreakMode="WordWrap"
+                           TextColor="{StaticResource InputText}" />
+                    <Label Text="{Binding AnswerHint}"
+                           FontSize="12"
+                           LineBreakMode="WordWrap"
+                           TextColor="{StaticResource Gray500}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border IsVisible="{Binding ShowRoundEnd}"
+                    BackgroundColor="{StaticResource HexSelected}"
+                    Padding="16"
+                    Stroke="{StaticResource BoardOrange}"
+                    StrokeThickness="2"
+                    StrokeShape="RoundRectangle 10">
+                <Label Text="{Binding RoundWinnerText}"
+                       FontSize="20"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{StaticResource InputText}" />
+            </Border>
+
+            <Button Text="جرس!"
+                    Command="{Binding BuzzCommand}"
+                    IsEnabled="{Binding CanBuzz}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource BoardOrange}"
+                    FontSize="18"
+                    HeightRequest="52"
+                    CornerRadius="10"
+                    Margin="0" />
+
+            <Grid ColumnDefinitions="*,*"
+                  ColumnSpacing="10"
+                  IsVisible="{Binding ShowHostJudge}">
+                <Button Grid.Column="0"
+                        Text="صحيح"
+                        Command="{Binding JudgeCorrectCommand}"
+                        TextColor="White"
+                        BackgroundColor="{StaticResource BoardGreen}"
+                        HeightRequest="48"
+                        CornerRadius="10" />
+                <Button Grid.Column="1"
+                        Text="خطأ"
+                        Command="{Binding JudgeWrongCommand}"
+                        TextColor="White"
+                        BackgroundColor="#C62828"
+                        HeightRequest="48"
+                        CornerRadius="10" />
+            </Grid>
+
+            <Button Text="الخروج"
+                    Command="{Binding LeaveCommand}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource Gray600}"
+                    HeightRequest="48"
+                    CornerRadius="10"
+                    Margin="0,4,0,0" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

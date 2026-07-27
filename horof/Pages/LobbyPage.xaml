@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:horof.ViewModels"
+             x:Class="horof.Pages.LobbyPage"
+             x:DataType="vm:LobbyViewModel"
+             Title="الردهة"
+             FlowDirection="RightToLeft"
+             BackgroundColor="{StaticResource PageBackground}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20">
+            <Label Text="غرفة اللعب"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource BoardGreen}" />
+
+            <Border Stroke="{StaticResource BoardOrange}" StrokeThickness="3" Padding="16" BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="رمز الغرفة — اضغط للنسخ" FontAttributes="Bold" TextColor="{StaticResource InputText}" />
+                    <Label Text="{Binding RoomCode}"
+                           FontSize="32"
+                           CharacterSpacing="6"
+                           HorizontalOptions="Center"
+                           TextColor="{StaticResource LetterInk}"
+                           TextDecorations="Underline">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CopyRoomCodeCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                    <Label Text="{Binding HostIp, StringFormat='IP: {0}'}"
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           TextColor="{StaticResource BoardGreen}"
+                           TextDecorations="Underline">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding CopyHostIpCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                    <Label Text="اضغط على الرمز أو IP للنسخ (Code: … / IP: …)"
+                           FontSize="11"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource Gray500}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16"
+                    BackgroundColor="White"
+                    Stroke="{StaticResource BoardGreen}"
+                    StrokeThickness="2"
+                    StrokeShape="RoundRectangle 12">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="4" VerticalOptions="Center">
+                        <Label Text="لاعبك"
+                               FontSize="12"
+                               TextColor="{StaticResource Gray500}" />
+                        <Label Text="{Binding LocalPlayerName}"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource InputText}" />
+                        <Label Text="{Binding LocalReadyStatusText}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="{Binding LocalReadyStatusColor}" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1"
+                            WidthRequest="12"
+                            HeightRequest="12"
+                            VerticalOptions="Center"
+                            StrokeShape="RoundRectangle 6"
+                            BackgroundColor="{Binding LocalReadyStatusColor}" />
+                </Grid>
+            </Border>
+
+            <CollectionView ItemsSource="{Binding PlayerSlots}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PlayerSlotViewModel">
+                        <Border Margin="0,4" Padding="12" BackgroundColor="White"
+                                Stroke="{Binding TeamColor}"
+                                StrokeThickness="{Binding SlotBorderThickness}"
+                                StrokeShape="RoundRectangle 8">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                <Label Text="{Binding Index, StringFormat='#{0}'}" VerticalOptions="Center" TextColor="{StaticResource InputText}" />
+                                <VerticalStackLayout Grid.Column="1">
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{Binding DisplayName}" FontAttributes="Bold" TextColor="{StaticResource InputText}" />
+                                        <Label Text="(أنت)"
+                                               IsVisible="{Binding IsLocalPlayer}"
+                                               FontSize="11"
+                                               TextColor="{StaticResource BoardOrange}" />
+                                    </HorizontalStackLayout>
+                                    <Label Text="{Binding TeamLabel}" TextColor="{Binding TeamColor}" FontSize="12" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="2" HorizontalOptions="End" Spacing="2">
+                                    <Label Text="مضيف"
+                                           IsVisible="{Binding IsHost}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource BoardOrange}" />
+                                    <Label Text="جاهز"
+                                           IsVisible="{Binding IsReady}"
+                                           FontSize="11"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource BoardGreen}" />
+                                    <Label Text="غير جاهز"
+                                           IsVisible="{Binding IsNotReady}"
+                                           FontSize="11"
+                                           TextColor="{StaticResource Gray500}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button Text="إضافة لاعب تجريبي (وضع التطوير)"
+                    Command="{Binding AddTestPlayerCommand}"
+                    IsVisible="{Binding IsHost}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource Gray400}" />
+
+            <Button Text="{Binding ReadyToggleText}"
+                    Command="{Binding ToggleReadyCommand}"
+                    TextColor="White"
+                    BackgroundColor="{Binding ReadyToggleColor}" />
+
+            <Button Text="بدء اللعبة"
+                    Command="{Binding StartGameCommand}"
+                    IsVisible="{Binding IsHost}"
+                    IsEnabled="{Binding CanStart}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource BoardOrange}" />
+
+            <Label Text="{Binding CopyFeedback}"
+                   TextColor="{StaticResource BoardGreen}"
+                   HorizontalTextAlignment="Center" />
+
+            <Label Text="{Binding StatusMessage}" TextColor="IndianRed" />
+
+            <Button Text="مغادرة"
+                    Command="{Binding LeaveCommand}"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource Gray600}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
