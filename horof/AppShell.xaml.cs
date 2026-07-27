@@ -1,10 +1,22 @@
-﻿namespace horof
+﻿using horof.Pages;
+
+namespace horof;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    public AppShell(HomePage homePage)
     {
-        public AppShell()
+        InitializeComponent();
+
+        var home = new ShellContent
         {
-            InitializeComponent();
-        }
+            Title = "حروف",
+            Route = "home",
+            Content = homePage
+        };
+        Items.Add(home);
+
+        Routing.RegisterRoute("lobby", typeof(LobbyPage));
+        Routing.RegisterRoute("game", typeof(GamePage));
     }
 }
